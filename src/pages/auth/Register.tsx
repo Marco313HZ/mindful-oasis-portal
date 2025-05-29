@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, User, Lock, AlertCircle, Phone } from 'lucide-react';
+import { signIn as signUpAdmin, SignUpBody } from '../services-api/sign-up-service';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -118,32 +118,28 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     setIsSubmitting(true);
-    
     try {
-      // Simulate API call
-      setTimeout(() => {
-        // Show success toast
-        toast({
-          title: "Registration successful",
-          description: "Please verify your email to activate your account."
-        });
-        
-        // Redirect to verification page
-        navigate('/auth/verify-email', { 
-          state: { email: formData.email } 
-        });
-        
-        setIsSubmitting(false);
-      }, 1500);
-    } catch (error) {
-      setErrors(prev => ({ 
-        ...prev, 
-        general: 'Registration failed. Please try again.' 
+      // Register Super Admin
+      const body: SignUpBody = {
+        full_name: formData.firstName + ' ' + formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password
+      };
+      await signUpAdmin(body);
+      toast({
+        title: "Registration successful",
+        description: "Please verify your email to activate your account."
+      });
+      navigate('/auth/verify-email', { state: { email: formData.email } });
+    } catch (error: any) {
+      setErrors(prev => ({
+        ...prev,
+        general: error?.message || 'Registration failed. Please try again.'
       }));
+    } finally {
       setIsSubmitting(false);
     }
   };

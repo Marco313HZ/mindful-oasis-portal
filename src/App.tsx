@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,6 +21,7 @@ import VerifyEmail from "./pages/auth/VerifyEmail";
 // Admin pages
 import Dashboard from "./pages/admin/Dashboard";
 import Users from "./pages/admin/Users";
+import AdminLayout from "@/components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
 
@@ -46,8 +46,8 @@ const App = () => (
           <Route path="/auth/verify-email" element={<VerifyEmail />} />
 
           {/* Admin Routes */}
-          <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/users" element={<Users />} />
+          <Route path="/admin/dashboard" element={<AdminLayout><Dashboard /></AdminLayout>} />
+          <Route path="/admin/users" element={<AdminLayout><Users /></AdminLayout>} />
           
           {/* 404 Route */}
           <Route path="*" element={<NotFound />} />

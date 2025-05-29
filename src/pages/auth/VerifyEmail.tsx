@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, CheckCircle, RefreshCw } from 'lucide-react';
 import { Input } from "@/components/ui/input";
+import { verifyEmail } from '../services-api/authService';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
@@ -90,9 +90,8 @@ const VerifyEmail = () => {
     if (lastInput) lastInput.focus();
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const code = verificationCode.join('');
-    
     if (code.length !== 6) {
       toast({
         title: "Invalid Code",
@@ -101,25 +100,41 @@ const VerifyEmail = () => {
       });
       return;
     }
-
     setIsVerifying(true);
-    
-    // Simulate API call to verify code
-    setTimeout(() => {
-      // For demo, any code is valid
+    try {
+      // Call backend verification API
+      const result = await verifyEmail({
+        email,
+        code,
+        userType: 'SuperAdmin'
+      });
+      if (result.active === false) {
+        toast({
+          title: "Account Inactive",
+          description: "Your account is not active. Please contact support.",
+          variant: "destructive"
+        });
+        setIsVerifying(false);
+        navigate('/auth/inactive', { state: { email } });
+        return;
+      }
       setIsVerified(true);
       setIsVerifying(false);
-      
       toast({
         title: "Email Verified",
         description: "Your email has been successfully verified"
       });
-      
-      // After a short delay, redirect to signin
       setTimeout(() => {
         navigate('/signin');
       }, 2000);
-    }, 1500);
+    } catch (error: any) {
+      setIsVerifying(false);
+      toast({
+        title: "Verification Failed",
+        description: error?.message || 'Verification failed. Please try again.',
+        variant: "destructive"
+      });
+    }
   };
 
   return (

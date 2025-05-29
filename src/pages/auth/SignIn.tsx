@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { signIn } from '@/pages/services-api/authService';
+ // Import your actual service
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -24,8 +25,7 @@ const SignIn = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    
-    // Clear errors when typing
+
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -35,7 +35,6 @@ const SignIn = () => {
     let isValid = true;
     const newErrors = { email: '', password: '', general: '' };
 
-    // Email validation
     if (!formData.email) {
       newErrors.email = 'Email is required';
       isValid = false;
@@ -44,7 +43,6 @@ const SignIn = () => {
       isValid = false;
     }
 
-    // Password validation
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
@@ -59,63 +57,39 @@ const SignIn = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!validateForm()) return;
-
     setIsSubmitting(true);
-    
     try {
-      // Simulate authentication API call
-      setTimeout(() => {
-        // For demo purposes, hardcode verified users
-        const verifiedUsers = [
-          { email: 'admin@mindfulcare.com', password: 'admin123', role: 'admin', name: 'Admin User', verified: true },
-          { email: 'doctor@mindfulcare.com', password: 'doctor123', role: 'doctor', name: 'Doctor User', verified: true },
-          { email: 'patient@mindfulcare.com', password: 'patient123', role: 'patient', name: 'Patient User', verified: false }
-        ];
-        
-        const user = verifiedUsers.find(u => u.email === formData.email && u.password === formData.password);
-        
-        if (user) {
-          if (!user.verified) {
-            // User found but email not verified
-            toast({
-              title: "Email not verified",
-              description: "Please verify your email before signing in.",
-              variant: "destructive"
-            });
-            navigate('/auth/verify-email', { state: { email: formData.email } });
-          } else {
-            // User found and email verified - proceed with login
-            localStorage.setItem('user', JSON.stringify({ 
-              email: user.email,
-              role: user.role,
-              name: user.name
-            }));
-            
-            toast({
-              title: "Sign in successful",
-              description: user.role === 'admin' ? "Welcome to the admin dashboard." : "Welcome back to MindfulCare."
-            });
-            
-            // Redirect based on role
-            if (user.role === 'admin') {
-              navigate('/admin/dashboard');
-            } else {
-              navigate('/');
-            }
-          }
-        } else {
-          // User not found or incorrect credentials
-          setErrors(prev => ({ 
-            ...prev, 
-            general: 'Invalid email or password. Try one of the demo accounts: admin@mindfulcare.com/admin123, doctor@mindfulcare.com/doctor123, or patient@mindfulcare.com/patient123 (unverified)' 
-          }));
-        }
+      // Call the real signIn service
+      const result = await signIn({
+        email: formData.email,
+        password: formData.password
+      });
+      // result: { token, user, is_active }
+      if (result && result.is_active === false) {
+        // Not active: show verification code page
+        navigate('/auth/verify-email', { state: { email: formData.email } });
         setIsSubmitting(false);
-      }, 1000);
-    } catch (error) {
-      setErrors(prev => ({ ...prev, general: 'Authentication failed. Please try again.' }));
+        return;
+      }
+      // Active: proceed to dashboard or home
+      localStorage.setItem('user', JSON.stringify(result.user));
+      localStorage.setItem('token', result.token);
+      toast({
+        title: "Sign in successful",
+        description: result.user.role === 'admin' || result.user.role === 'SuperAdmin' ? "Welcome to the admin dashboard." : "Welcome back to MindfulCare."
+      });
+      if (result.user.role === 'admin' || result.user.role === 'SuperAdmin') {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/');
+      }
+    } catch (error: any) {
+      setErrors(prev => ({
+        ...prev,
+        general: error?.message || 'Invalid email or password.'
+      }));
+    } finally {
       setIsSubmitting(false);
     }
   };

@@ -1,5 +1,3 @@
-
-import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,39 +10,43 @@ import {
   ArrowUp, 
   ArrowDown
 } from "lucide-react";
+import AdminDoctorsPatients from './DoctorsPatients';
+import AdminAppointments from './Appointments';
 
 const Dashboard = () => {
+  // Example stats data
   const stats = [
-    { 
-      title: "Total Users", 
-      value: "854", 
-      icon: <UsersIcon className="h-5 w-5" />,
+    {
+      title: "Total Users",
+      value: "854",
+      icon: <UsersIcon className="h-5 w-5" />, 
       change: "+12%",
       trend: "up"
     },
-    { 
-      title: "Appointments", 
-      value: "235", 
-      icon: <Calendar className="h-5 w-5" />,
+    {
+      title: "Appointments",
+      value: "235",
+      icon: <Calendar className="h-5 w-5" />, 
       change: "+18%",
       trend: "up"
     },
-    { 
-      title: "Active Sessions", 
-      value: "43", 
-      icon: <Activity className="h-5 w-5" />,
+    {
+      title: "Active Sessions",
+      value: "43",
+      icon: <Activity className="h-5 w-5" />, 
       change: "-5%",
       trend: "down"
     },
-    { 
-      title: "Support Tickets", 
-      value: "12", 
-      icon: <FileText className="h-5 w-5" />,
+    {
+      title: "Support Tickets",
+      value: "12",
+      icon: <FileText className="h-5 w-5" />, 
       change: "+2%",
       trend: "up"
     }
   ];
 
+  // Example recent users
   const recentUsers = [
     { id: 1, name: "Alex Johnson", email: "alex@example.com", date: "May 10, 2025" },
     { id: 2, name: "Maria Garcia", email: "maria@example.com", date: "May 09, 2025" },
@@ -54,35 +56,28 @@ const Dashboard = () => {
   ];
 
   return (
-    <AdminLayout>
+    <div className="space-y-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        <p className="text-gray-600">Welcome to the MindfulCare admin dashboard.</p>
+        <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+        <p className="text-gray-600">Overview of your platform's key metrics and recent activity.</p>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {stats.map((stat, index) => (
-          <Card key={index}>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {stats.map((stat, idx) => (
+          <Card key={idx} className="shadow-md border-0 bg-gradient-to-br from-purple-50 to-blue-50">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-500">{stat.title}</p>
-                  <p className="text-3xl font-bold text-gray-800 mt-1">{stat.value}</p>
+                  <p className="text-3xl font-bold text-gray-900 mt-1">{stat.value}</p>
                 </div>
-                <div className={`p-3 rounded-full ${
-                  stat.title === "Total Users" ? "bg-blue-100" :
-                  stat.title === "Appointments" ? "bg-green-100" :
-                  stat.title === "Active Sessions" ? "bg-purple-100" :
-                  "bg-yellow-100"
-                }`}>
+                <div className="p-3 rounded-full bg-white shadow">
                   {stat.icon}
                 </div>
               </div>
               <div className="mt-4 flex items-center">
-                <div className={`flex items-center text-sm ${
-                  stat.trend === "up" ? "text-green-600" : "text-red-600"
-                }`}>
+                <div className={`flex items-center text-sm ${stat.trend === "up" ? "text-green-600" : "text-red-600"}`}>
                   {stat.trend === "up" ? <ArrowUp className="h-3 w-3 mr-1" /> : <ArrowDown className="h-3 w-3 mr-1" />}
                   {stat.change}
                 </div>
@@ -94,7 +89,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Charts Section */}
+        {/* Analytics Section */}
         <div className="lg:col-span-2">
           <Tabs defaultValue="overview">
             <div className="flex items-center justify-between mb-4">
@@ -103,10 +98,10 @@ const Dashboard = () => {
                 <TabsTrigger value="overview">Overview</TabsTrigger>
                 <TabsTrigger value="users">Users</TabsTrigger>
                 <TabsTrigger value="appointments">Appointments</TabsTrigger>
+                <TabsTrigger value="doctors-patients">Doctors & Patients</TabsTrigger>
               </TabsList>
             </div>
-
-            <Card>
+            <Card className="shadow border-0">
               <CardContent className="p-6">
                 <TabsContent value="overview">
                   <div className="space-y-4">
@@ -139,28 +134,18 @@ const Dashboard = () => {
                   </div>
                 </TabsContent>
                 <TabsContent value="appointments">
-                  <div className="space-y-4">
-                    <h3 className="text-sm font-medium text-gray-500">Appointments Overview</h3>
-                    <div className="h-80 w-full bg-gray-50 flex items-center justify-center rounded-md border">
-                      <div className="text-center">
-                        <BarChart className="h-10 w-10 mx-auto text-gray-400 mb-2" />
-                        <p className="text-gray-500">Appointments Chart Placeholder</p>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center text-sm text-gray-500">
-                      <div>Appointment Types</div>
-                      <div>Current month</div>
-                    </div>
-                  </div>
+                  <AdminAppointments />
+                </TabsContent>
+                <TabsContent value="doctors-patients">
+                  <AdminDoctorsPatients />
                 </TabsContent>
               </CardContent>
             </Card>
           </Tabs>
         </div>
-
         {/* Recent Users Section */}
         <div>
-          <Card>
+          <Card className="shadow border-0">
             <CardHeader className="px-6 py-4">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-lg font-semibold">Recent Users</CardTitle>
@@ -194,7 +179,7 @@ const Dashboard = () => {
           </Card>
         </div>
       </div>
-    </AdminLayout>
+    </div>
   );
 };
 

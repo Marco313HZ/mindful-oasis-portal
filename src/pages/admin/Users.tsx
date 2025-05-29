@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -46,6 +44,8 @@ import {
   Shield, 
   AlertTriangle 
 } from "lucide-react";
+import AdminLayout from '@/components/admin/AdminLayout';
+import DoctorDashboard from '../doctor/Dashboard';
 
 // User type definition
 interface User {
@@ -281,6 +281,12 @@ const Users = () => {
         return 'bg-gray-100 text-gray-800';
     }
   };
+
+  // Example: Render doctor dashboard if user is a doctor
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (user.role === 'doctor') {
+    return <DoctorDashboard doctorId={user.id} />;
+  }
 
   return (
     <AdminLayout>
