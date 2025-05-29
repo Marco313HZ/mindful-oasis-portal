@@ -5,12 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, AlertCircle } from 'lucide-react';
+
 import { signIn } from '@/pages/services-api/authService';
- // Import your actual service
+import { useAuth } from '@/contexts/AuthContext';
+
 
 const SignIn = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
+  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -46,9 +50,6 @@ const SignIn = () => {
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-      isValid = false;
     }
 
     setErrors(newErrors);
@@ -60,6 +61,7 @@ const SignIn = () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
+
       // Call the real signIn service
       const result = await signIn({
         email: formData.email,
@@ -85,10 +87,26 @@ const SignIn = () => {
         navigate('/');
       }
     } catch (error: any) {
-      setErrors(prev => ({
-        ...prev,
-        general: error?.message || 'Invalid email or password.'
-      }));
+      if (error.message.includes('verify')) {
+        navigate('/auth/verify-email', { state: { email: formData.email } });
+      } else {
+        setErrors(prev => ({ 
+          ...prev, 
+          general: error.message || 'Invalid email or password' 
+        }));
+        
+        try {
+          await login(formData.email, formData.password);
+          toast({
+            title: "Sign in successful",
+            description: "Welcome back to MindfulCare."
+          });
+          navigate('/');
+        } catch (loginError) {
+          // Login failed, error already shown
+        }
+      }
+
     } finally {
       setIsSubmitting(false);
     }

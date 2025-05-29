@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Phone, Clock, MapPin } from 'lucide-react';
+import { contactAPI } from '@/services/api';
 
 const Contact = () => {
   const { toast } = useToast();
@@ -36,17 +37,25 @@ const Contact = () => {
     setFormData(prev => ({ ...prev, reason: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log('Form submitted:', formData);
+    try {
+      await contactAPI.sendMessage({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        subject: formData.subject,
+        message: formData.message,
+        reason: formData.reason
+      });
+
       toast({
         title: "Message Sent",
         description: "We've received your message and will contact you soon.",
       });
+      
       setFormData({
         name: '',
         email: '',
@@ -55,8 +64,15 @@ const Contact = () => {
         message: '',
         reason: ''
       });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send message. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (

@@ -4,13 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, User, Lock, AlertCircle, Phone } from 'lucide-react';
+
 import { signIn as signUpAdmin, SignUpBody } from '../services-api/sign-up-service';
+import { useAuth } from '@/contexts/AuthContext';
+
 
 const Register = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signup } = useAuth();
+  
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -18,6 +24,7 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
+    role: 'patient' as 'admin' | 'doctor' | 'patient',
     acceptTerms: false
   });
   
@@ -28,6 +35,7 @@ const Register = () => {
     phone: '',
     password: '',
     confirmPassword: '',
+    role: '',
     acceptTerms: '',
     general: ''
   });
@@ -41,6 +49,13 @@ const Register = () => {
     // Clear errors when typing
     if (errors[name as keyof typeof errors]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const handleSelectChange = (value: 'admin' | 'doctor' | 'patient') => {
+    setFormData(prev => ({ ...prev, role: value }));
+    if (errors.role) {
+      setErrors(prev => ({ ...prev, role: '' }));
     }
   };
 
@@ -60,6 +75,7 @@ const Register = () => {
       phone: '',
       password: '',
       confirmPassword: '',
+      role: '',
       acceptTerms: '',
       general: ''
     };
@@ -138,6 +154,32 @@ const Register = () => {
       setErrors(prev => ({
         ...prev,
         general: error?.message || 'Registration failed. Please try again.'
+      }));
+    }
+
+    try {
+      const userData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+      };
+
+      await signup(userData, formData.role);
+      
+      toast({
+        title: "Registration successful",
+        description: "Please check your email to verify your account."
+      });
+      
+      navigate('/auth/verify-email', { 
+        state: { email: formData.email } 
+      });
+    } catch (error: any) {
+      setErrors(prev => ({ 
+        ...prev, 
+        general: error.message || 'Registration failed. Please try again.' 
       }));
     } finally {
       setIsSubmitting(false);
@@ -255,6 +297,23 @@ const Register = () => {
                   />
                 </div>
                 {errors.phone && <p className="mt-1 text-sm text-red-600">{errors.phone}</p>}
+              </div>
+
+              <div>
+                <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Type
+                </label>
+                <Select value={formData.role} onValueChange={handleSelectChange}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select account type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="patient">Patient</SelectItem>
+                    <SelectItem value="doctor">Doctor</SelectItem>
+                    <SelectItem value="admin">Administrator</SelectItem>
+                  </SelectContent>
+                </Select>
+                {errors.role && <p className="mt-1 text-sm text-red-600">{errors.role}</p>}
               </div>
 
               <div>
