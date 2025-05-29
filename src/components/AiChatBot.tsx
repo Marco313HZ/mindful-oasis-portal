@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Bot, Circle, CircleX, SendHorizonal } from 'lucide-react';
+import { chatAPI } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 type Message = {
   id: number;
@@ -25,18 +27,34 @@ const AiChatBot = () => {
     }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const toggleChat = () => {
     setIsOpen(!isOpen);
+    
+    // Create chat session when opening if user is authenticated
+    if (!isOpen && user && !sessionId) {
+      createChatSession();
+    }
+  };
+
+  const createChatSession = async () => {
+    try {
+      const response = await chatAPI.createSession();
+      setSessionId(response.sessionId);
+    } catch (error) {
+      console.log('Failed to create chat session, using anonymous mode');
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputMessage(e.target.value);
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!inputMessage.trim()) return;
@@ -50,16 +68,39 @@ const AiChatBot = () => {
     };
     
     setMessages(prev => [...prev, userMessage]);
+    const messageText = inputMessage.trim();
     setInputMessage('');
     setIsTyping(true);
     
-    // Simulate AI response after a short delay
-    setTimeout(() => {
-      generateBotResponse(userMessage.text);
-    }, 1000);
+    try {
+      let response;
+      
+      if (user && sessionId) {
+        // Authenticated user - use session-based chat
+        response = await chatAPI.sendMessage(sessionId, messageText);
+      } else {
+        // Anonymous user - use anonymous chat
+        response = await chatAPI.sendAnonymousMessage(messageText);
+      }
+      
+      // Add bot response
+      const botMessage: Message = {
+        id: messages.length + 2,
+        text: response.message || response.reply,
+        isBot: true,
+        timestamp: new Date()
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+    } catch (error: any) {
+      // Fallback to local responses if API fails
+      generateLocalBotResponse(messageText);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
-  const generateBotResponse = (userMessage: string) => {
+  const generateLocalBotResponse = (userMessage: string) => {
     let botResponse: string;
     
     // Simple response logic based on keywords
@@ -96,7 +137,6 @@ const AiChatBot = () => {
     };
     
     setMessages(prev => [...prev, newBotMessage]);
-    setIsTyping(false);
   };
 
   // Scroll to bottom when messages change
@@ -123,7 +163,9 @@ const AiChatBot = () => {
               <div className="bg-white p-1.5 rounded-full mr-3">
                 <Bot className="h-5 w-5 text-purple-500" />
               </div>
-              <CardTitle className="text-lg font-medium">MindCare AI</CardTitle>
+              <CardTitle className="text-lg font-medium">
+                MindCare AI {!user && '(Anonymous)'}
+              </CardTitle>
             </div>
             <Button 
               variant="ghost" 
@@ -189,6 +231,11 @@ const AiChatBot = () => {
                 <SendHorizonal className="h-4 w-4" />
               </Button>
             </form>
+            {!user && (
+              <p className="text-xs text-gray-500 mt-2">
+                Sign in for personalized assistance
+              </p>
+            )}
           </CardFooter>
         </Card>
       )}

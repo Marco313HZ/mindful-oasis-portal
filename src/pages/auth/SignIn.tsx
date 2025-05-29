@@ -6,10 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const SignIn = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { login } = useAuth();
+  
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -48,9 +51,6 @@ const SignIn = () => {
     if (!formData.password) {
       newErrors.password = 'Password is required';
       isValid = false;
-    } else if (formData.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-      isValid = false;
     }
 
     setErrors(newErrors);
@@ -65,57 +65,24 @@ const SignIn = () => {
     setIsSubmitting(true);
     
     try {
-      // Simulate authentication API call
-      setTimeout(() => {
-        // For demo purposes, hardcode verified users
-        const verifiedUsers = [
-          { email: 'admin@mindfulcare.com', password: 'admin123', role: 'admin', name: 'Admin User', verified: true },
-          { email: 'doctor@mindfulcare.com', password: 'doctor123', role: 'doctor', name: 'Doctor User', verified: true },
-          { email: 'patient@mindfulcare.com', password: 'patient123', role: 'patient', name: 'Patient User', verified: false }
-        ];
-        
-        const user = verifiedUsers.find(u => u.email === formData.email && u.password === formData.password);
-        
-        if (user) {
-          if (!user.verified) {
-            // User found but email not verified
-            toast({
-              title: "Email not verified",
-              description: "Please verify your email before signing in.",
-              variant: "destructive"
-            });
-            navigate('/auth/verify-email', { state: { email: formData.email } });
-          } else {
-            // User found and email verified - proceed with login
-            localStorage.setItem('user', JSON.stringify({ 
-              email: user.email,
-              role: user.role,
-              name: user.name
-            }));
-            
-            toast({
-              title: "Sign in successful",
-              description: user.role === 'admin' ? "Welcome to the admin dashboard." : "Welcome back to MindfulCare."
-            });
-            
-            // Redirect based on role
-            if (user.role === 'admin') {
-              navigate('/admin/dashboard');
-            } else {
-              navigate('/');
-            }
-          }
-        } else {
-          // User not found or incorrect credentials
-          setErrors(prev => ({ 
-            ...prev, 
-            general: 'Invalid email or password. Try one of the demo accounts: admin@mindfulcare.com/admin123, doctor@mindfulcare.com/doctor123, or patient@mindfulcare.com/patient123 (unverified)' 
-          }));
-        }
-        setIsSubmitting(false);
-      }, 1000);
-    } catch (error) {
-      setErrors(prev => ({ ...prev, general: 'Authentication failed. Please try again.' }));
+      await login(formData.email, formData.password);
+      
+      toast({
+        title: "Sign in successful",
+        description: "Welcome back to MindfulCare."
+      });
+      
+      navigate('/');
+    } catch (error: any) {
+      if (error.message.includes('verify')) {
+        navigate('/auth/verify-email', { state: { email: formData.email } });
+      } else {
+        setErrors(prev => ({ 
+          ...prev, 
+          general: error.message || 'Invalid email or password' 
+        }));
+      }
+    } finally {
       setIsSubmitting(false);
     }
   };
