@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -5,12 +6,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, CheckCircle, RefreshCw } from 'lucide-react';
 import { Input } from "@/components/ui/input";
-import { verifyEmail } from '../services-api/authService';
+import { useAuth } from '@/contexts/AuthContext';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
+  const { verifyEmail } = useAuth();
+  
   const [email, setEmail] = useState('');
   const [verificationCode, setVerificationCode] = useState(['', '', '', '', '', '']);
   const [isResending, setIsResending] = useState(false);
@@ -100,40 +103,34 @@ const VerifyEmail = () => {
       });
       return;
     }
+    
     setIsVerifying(true);
+    
     try {
       // Call backend verification API
-      const result = await verifyEmail({
-        email,
-        code,
-        userType: 'SuperAdmin'
-      });
-      if (result.active === false) {
+      const result = await verifyEmail(email, code);
+      
+      if (result.success) {
+        setIsVerified(true);
         toast({
-          title: "Account Inactive",
-          description: "Your account is not active. Please contact support.",
-          variant: "destructive"
+          title: "Email Verified",
+          description: "Your email has been successfully verified"
         });
-        setIsVerifying(false);
-        navigate('/auth/inactive', { state: { email } });
-        return;
+        
+        setTimeout(() => {
+          navigate('/signin');
+        }, 2000);
+      } else {
+        throw new Error(result.message || 'Verification failed');
       }
-      setIsVerified(true);
-      setIsVerifying(false);
-      toast({
-        title: "Email Verified",
-        description: "Your email has been successfully verified"
-      });
-      setTimeout(() => {
-        navigate('/signin');
-      }, 2000);
     } catch (error: any) {
-      setIsVerifying(false);
       toast({
         title: "Verification Failed",
         description: error?.message || 'Verification failed. Please try again.',
         variant: "destructive"
       });
+    } finally {
+      setIsVerifying(false);
     }
   };
 

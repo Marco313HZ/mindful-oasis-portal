@@ -5,10 +5,11 @@ import { authAPI } from '@/services/api';
 interface User {
   id: string;
   email: string;
-  role: 'admin' | 'doctor' | 'patient';
-  firstName?: string;
-  lastName?: string;
-  verified: boolean;
+  role: 'SuperAdmin' | 'Doctor' | 'Patient';
+  full_name: string;
+  phone?: string;
+  is_active: boolean;
+  is_verified: boolean;
 }
 
 interface AuthContextType {
@@ -16,7 +17,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   signup: (userData: any, role: 'admin' | 'doctor' | 'patient') => Promise<void>;
-  verifyEmail: (token: string) => Promise<void>;
+  verifyEmail: (email: string, code: string) => Promise<void>;
   isLoading: boolean;
 }
 
@@ -58,8 +59,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     try {
       const response = await authAPI.login(email, password);
       
-      if (!response.user.verified) {
+      if (!response.user.is_verified) {
         throw new Error('Please verify your email before signing in');
+      }
+
+      if (!response.user.is_active) {
+        throw new Error('Your account is not active. Please contact support.');
       }
 
       localStorage.setItem('authToken', response.token);
@@ -98,9 +103,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const verifyEmail = async (token: string) => {
+  const verifyEmail = async (email: string, code: string) => {
     try {
-      const response = await authAPI.verifyEmail(token);
+      const response = await authAPI.verifyEmail(email, code);
       return response;
     } catch (error) {
       throw error;

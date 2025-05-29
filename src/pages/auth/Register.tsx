@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -6,11 +7,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, User, Lock, AlertCircle, Phone } from 'lucide-react';
-
-import { signIn as signUpAdmin, SignUpBody } from '../services-api/sign-up-service';
+import { Mail, User, Lock, AlertCircle, Phone, Calendar, MapPin } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-
 
 const Register = () => {
   const navigate = useNavigate();
@@ -18,25 +16,32 @@ const Register = () => {
   const { signup } = useAuth();
   
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    full_name: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
     role: 'patient' as 'admin' | 'doctor' | 'patient',
-    acceptTerms: false
+    acceptTerms: false,
+    // Doctor specific fields
+    specialization: '',
+    license_number: '',
+    // Patient specific fields
+    date_of_birth: '',
+    gender: '',
+    address: ''
   });
   
   const [errors, setErrors] = useState({
-    firstName: '',
-    lastName: '',
+    full_name: '',
     email: '',
     phone: '',
     password: '',
     confirmPassword: '',
     role: '',
     acceptTerms: '',
+    specialization: '',
+    license_number: '',
     general: ''
   });
   
@@ -52,10 +57,10 @@ const Register = () => {
     }
   };
 
-  const handleSelectChange = (value: 'admin' | 'doctor' | 'patient') => {
-    setFormData(prev => ({ ...prev, role: value }));
-    if (errors.role) {
-      setErrors(prev => ({ ...prev, role: '' }));
+  const handleSelectChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    if (errors[field as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
@@ -69,26 +74,21 @@ const Register = () => {
   const validateForm = () => {
     let isValid = true;
     const newErrors = {
-      firstName: '',
-      lastName: '',
+      full_name: '',
       email: '',
       phone: '',
       password: '',
       confirmPassword: '',
       role: '',
       acceptTerms: '',
+      specialization: '',
+      license_number: '',
       general: ''
     };
 
-    // First name validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-      isValid = false;
-    }
-
-    // Last name validation
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
+    // Full name validation
+    if (!formData.full_name.trim()) {
+      newErrors.full_name = 'Full name is required';
       isValid = false;
     }
 
@@ -122,6 +122,18 @@ const Register = () => {
       isValid = false;
     }
 
+    // Doctor specific validations
+    if (formData.role === 'doctor') {
+      if (!formData.specialization.trim()) {
+        newErrors.specialization = 'Specialization is required for doctors';
+        isValid = false;
+      }
+      if (!formData.license_number.trim()) {
+        newErrors.license_number = 'License number is required for doctors';
+        isValid = false;
+      }
+    }
+
     // Terms acceptance validation
     if (!formData.acceptTerms) {
       newErrors.acceptTerms = 'You must accept the terms and conditions';
@@ -135,36 +147,26 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+    
     setIsSubmitting(true);
+    
     try {
-      // Register Super Admin
-      const body: SignUpBody = {
-        full_name: formData.firstName + ' ' + formData.lastName,
+      const userData: any = {
+        full_name: formData.full_name,
         email: formData.email,
-        phone: formData.phone,
-        password: formData.password
-      };
-      await signUpAdmin(body);
-      toast({
-        title: "Registration successful",
-        description: "Please verify your email to activate your account."
-      });
-      navigate('/auth/verify-email', { state: { email: formData.email } });
-    } catch (error: any) {
-      setErrors(prev => ({
-        ...prev,
-        general: error?.message || 'Registration failed. Please try again.'
-      }));
-    }
-
-    try {
-      const userData = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        phone: formData.phone,
         password: formData.password,
+        phone: formData.phone || undefined,
       };
+
+      // Add role-specific fields
+      if (formData.role === 'doctor') {
+        userData.specialization = formData.specialization;
+        userData.license_number = formData.license_number;
+      } else if (formData.role === 'patient') {
+        userData.date_of_birth = formData.date_of_birth || undefined;
+        userData.gender = formData.gender || undefined;
+        userData.address = formData.address || undefined;
+      }
 
       await signup(userData, formData.role);
       
@@ -211,48 +213,26 @@ const Register = () => {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                    First Name
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <Input
-                      id="firstName"
-                      name="firstName"
-                      type="text"
-                      required
-                      value={formData.firstName}
-                      onChange={handleChange}
-                      className={`pl-10 ${errors.firstName ? 'border-red-500' : ''}`}
-                    />
+              <div>
+                <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
+                  Full Name
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <User className="h-5 w-5 text-gray-400" />
                   </div>
-                  {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
+                  <Input
+                    id="full_name"
+                    name="full_name"
+                    type="text"
+                    required
+                    value={formData.full_name}
+                    onChange={handleChange}
+                    className={`pl-10 ${errors.full_name ? 'border-red-500' : ''}`}
+                    placeholder="Your full name"
+                  />
                 </div>
-                
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                    Last Name
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <User className="h-5 w-5 text-gray-400" />
-                    </div>
-                    <Input
-                      id="lastName"
-                      name="lastName"
-                      type="text"
-                      required
-                      value={formData.lastName}
-                      onChange={handleChange}
-                      className={`pl-10 ${errors.lastName ? 'border-red-500' : ''}`}
-                    />
-                  </div>
-                  {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
-                </div>
+                {errors.full_name && <p className="mt-1 text-sm text-red-600">{errors.full_name}</p>}
               </div>
 
               <div>
@@ -303,7 +283,7 @@ const Register = () => {
                 <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
                   Account Type
                 </label>
-                <Select value={formData.role} onValueChange={handleSelectChange}>
+                <Select value={formData.role} onValueChange={(value: 'admin' | 'doctor' | 'patient') => handleSelectChange('role', value)}>
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select account type" />
                   </SelectTrigger>
@@ -315,6 +295,100 @@ const Register = () => {
                 </Select>
                 {errors.role && <p className="mt-1 text-sm text-red-600">{errors.role}</p>}
               </div>
+
+              {/* Doctor specific fields */}
+              {formData.role === 'doctor' && (
+                <>
+                  <div>
+                    <label htmlFor="specialization" className="block text-sm font-medium text-gray-700 mb-1">
+                      Specialization
+                    </label>
+                    <Input
+                      id="specialization"
+                      name="specialization"
+                      value={formData.specialization}
+                      onChange={handleChange}
+                      className={errors.specialization ? 'border-red-500' : ''}
+                      placeholder="e.g., Psychiatry, Psychology"
+                      required
+                    />
+                    {errors.specialization && <p className="mt-1 text-sm text-red-600">{errors.specialization}</p>}
+                  </div>
+                  <div>
+                    <label htmlFor="license_number" className="block text-sm font-medium text-gray-700 mb-1">
+                      License Number
+                    </label>
+                    <Input
+                      id="license_number"
+                      name="license_number"
+                      value={formData.license_number}
+                      onChange={handleChange}
+                      className={errors.license_number ? 'border-red-500' : ''}
+                      placeholder="Your medical license number"
+                      required
+                    />
+                    {errors.license_number && <p className="mt-1 text-sm text-red-600">{errors.license_number}</p>}
+                  </div>
+                </>
+              )}
+
+              {/* Patient specific fields */}
+              {formData.role === 'patient' && (
+                <>
+                  <div>
+                    <label htmlFor="date_of_birth" className="block text-sm font-medium text-gray-700 mb-1">
+                      Date of Birth (optional)
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Calendar className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        id="date_of_birth"
+                        name="date_of_birth"
+                        type="date"
+                        value={formData.date_of_birth}
+                        onChange={handleChange}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="gender" className="block text-sm font-medium text-gray-700 mb-1">
+                      Gender (optional)
+                    </label>
+                    <Select value={formData.gender} onValueChange={(value) => handleSelectChange('gender', value)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Male">Male</SelectItem>
+                        <SelectItem value="Female">Female</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                        <SelectItem value="Prefer not to say">Prefer not to say</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
+                      Address (optional)
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <MapPin className="h-5 w-5 text-gray-400" />
+                      </div>
+                      <Input
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleChange}
+                        className="pl-10"
+                        placeholder="Your address"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div>
                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
@@ -401,7 +475,7 @@ const Register = () => {
             <Link to="/" className="text-sm text-gray-600 hover:text-purple-500">
               ← Back to MindfulCare Home
             </Link>
-          </div>
+            </div>
         </div>
       </div>
     </div>

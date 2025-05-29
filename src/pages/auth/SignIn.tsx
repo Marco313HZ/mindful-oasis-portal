@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -5,10 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Mail, Lock, AlertCircle } from 'lucide-react';
-
-import { signIn } from '@/pages/services-api/authService';
 import { useAuth } from '@/contexts/AuthContext';
-
 
 const SignIn = () => {
   const navigate = useNavigate();
@@ -59,29 +57,20 @@ const SignIn = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+    
     setIsSubmitting(true);
+    
     try {
-
-      // Call the real signIn service
-      const result = await signIn({
-        email: formData.email,
-        password: formData.password
-      });
-      // result: { token, user, is_active }
-      if (result && result.is_active === false) {
-        // Not active: show verification code page
-        navigate('/auth/verify-email', { state: { email: formData.email } });
-        setIsSubmitting(false);
-        return;
-      }
-      // Active: proceed to dashboard or home
-      localStorage.setItem('user', JSON.stringify(result.user));
-      localStorage.setItem('token', result.token);
+      await login(formData.email, formData.password);
+      
+      const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+      
       toast({
         title: "Sign in successful",
-        description: result.user.role === 'admin' || result.user.role === 'SuperAdmin' ? "Welcome to the admin dashboard." : "Welcome back to MindfulCare."
+        description: userData.role === 'SuperAdmin' ? "Welcome to the admin dashboard." : "Welcome back to MindfulCare."
       });
-      if (result.user.role === 'admin' || result.user.role === 'SuperAdmin') {
+      
+      if (userData.role === 'SuperAdmin') {
         navigate('/admin/dashboard');
       } else {
         navigate('/');
@@ -94,19 +83,7 @@ const SignIn = () => {
           ...prev, 
           general: error.message || 'Invalid email or password' 
         }));
-        
-        try {
-          await login(formData.email, formData.password);
-          toast({
-            title: "Sign in successful",
-            description: "Welcome back to MindfulCare."
-          });
-          navigate('/');
-        } catch (loginError) {
-          // Login failed, error already shown
-        }
       }
-
     } finally {
       setIsSubmitting(false);
     }
